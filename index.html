@@ -80,7 +80,8 @@
 
     async function fetchXP() {
       try {
-        const res = await fetch("https://api.allorigins.win/raw?url=https://www.curseofaros.com/highscores.html");
+        const url = "https://corsproxy.io/?" + encodeURIComponent("https://www.curseofaros.com/highscores.html");
+        const res = await fetch(url);
         const text = await res.text();
 
         const parser = new DOMParser();
