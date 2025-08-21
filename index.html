@@ -1,63 +1,51 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="vi">
 <head>
   <meta charset="UTF-8">
   <title>SuS XP Leaderboard</title>
   <style>
     body {
-      background-color: #111;
-      color: #ddd;
+      background: #121212;
+      color: #f5f5f5;
       font-family: Arial, sans-serif;
       text-align: center;
-      margin: 0;
-      padding: 0;
     }
-    header {
-      background: #222;
-      padding: 20px;
-      font-size: 24px;
-      font-weight: bold;
-    }
+    h1 { margin: 20px 0; }
     table {
-      width: 80%;
-      margin: 30px auto;
+      margin: auto;
       border-collapse: collapse;
-      font-size: 18px;
+      width: 70%;
+      background: #1e1e1e;
+      border-radius: 8px;
+      overflow: hidden;
     }
     th, td {
-      border: 1px solid #333;
       padding: 12px;
+      border: 1px solid #333;
     }
     th {
       background: #333;
-      color: #fff;
+      font-weight: bold;
     }
-    tr:nth-child(even) {
-      background: #1a1a1a;
-    }
-    tr:hover {
-      background: #2a2a2a;
-    }
-    #updateBtn {
-      margin: 20px;
-      padding: 10px 20px;
-      font-size: 16px;
+    button {
       background: #444;
       color: #fff;
+      padding: 10px 20px;
       border: none;
+      margin: 15px;
       border-radius: 6px;
       cursor: pointer;
     }
-    #updateBtn:hover {
+    button:hover {
       background: #666;
     }
   </style>
 </head>
 <body>
-  <header>SuS XP Leaderboard</header>
-  <p>Danh sách theo dõi 4 người chơi | Cập nhật tự động mỗi 30 phút</p>
-  <button id="updateBtn">🔄 Cập nhật ngay</button>
-  
+  <h1>SuS XP Leaderboard</h1>
+  <p>Theo dõi 4 người chơi | Tự động cập nhật mỗi 30 phút</p>
+  <button onclick="fetchXP()">Cập nhật ngay</button>
+
   <table id="leaderboard">
     <thead>
       <tr>
@@ -66,58 +54,66 @@
         <th>Tổng XP</th>
       </tr>
     </thead>
-    <tbody></tbody>
+    <tbody>
+      <tr><td colspan="3">Đang tải dữ liệu...</td></tr>
+    </tbody>
   </table>
 
   <script>
     const players = ["SuS QuangTong", "SuS Dominate", "SuS TradaVN", "SuS Daera"];
-    const tableBody = document.querySelector("#leaderboard tbody");
-    const updateBtn = document.getElementById("updateBtn");
 
-    async function fetchXP(player) {
-      const url = "https://www.curseofaros.com/highscores-personal?user=" + encodeURIComponent(player);
+    async function fetchXP() {
       try {
-        const res = await fetch(url);
+        const res = await fetch("https://api.allorigins.win/raw?url=https://www.curseofaros.com/");
         const text = await res.text();
-        // Parse HTML: tìm dòng có Total XP
-        const match = text.match(/Total XP<\/td><td>([\d,]+)/);
-        if (match) {
-          return { name: player, xp: parseInt(match[1].replace(/,/g, ""), 10) };
+
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(text, "text/html");
+        const rows = doc.querySelectorAll("table tr");
+
+        let data = [];
+
+        rows.forEach((row, i) => {
+          if (i === 0) return; // bỏ header
+          const cols = row.querySelectorAll("td");
+          if (cols.length >= 3) {
+            const name = cols[1].innerText.trim();
+            const xp = parseInt(cols[2].innerText.replace(/,/g, '')) || 0;
+            if (players.includes(name)) {
+              data.push({ name, xp });
+            }
+          }
+        });
+
+        // sắp xếp giảm dần theo xp
+        data.sort((a, b) => b.xp - a.xp);
+
+        const tbody = document.querySelector("#leaderboard tbody");
+        tbody.innerHTML = "";
+        data.forEach((p, index) => {
+          tbody.innerHTML += `
+            <tr>
+              <td>${index + 1}</td>
+              <td>${p.name}</td>
+              <td>${p.xp.toLocaleString()}</td>
+            </tr>
+          `;
+        });
+
+        if (data.length === 0) {
+          tbody.innerHTML = `<tr><td colspan="3">Không tìm thấy dữ liệu</td></tr>`;
         }
+
       } catch (e) {
-        console.error("Lỗi khi lấy dữ liệu của", player, e);
+        console.error("Lỗi:", e);
+        document.querySelector("#leaderboard tbody").innerHTML = `<tr><td colspan="3">Lỗi tải dữ liệu</td></tr>`;
       }
-      return { name: player, xp: 0 };
     }
 
-    async function updateLeaderboard() {
-      let results = [];
-      for (let player of players) {
-        const data = await fetchXP(player);
-        results.push(data);
-      }
-      // Sắp xếp theo XP giảm dần
-      results.sort((a, b) => b.xp - a.xp);
-
-      // Cập nhật bảng
-      tableBody.innerHTML = "";
-      results.forEach((p, i) => {
-        const row = `<tr>
-          <td>${i + 1}</td>
-          <td>${p.name}</td>
-          <td>${p.xp.toLocaleString()}</td>
-        </tr>`;
-        tableBody.innerHTML += row;
-      });
-    }
-
-    // Nút cập nhật ngay
-    updateBtn.addEventListener("click", updateLeaderboard);
-
-    // Lần đầu chạy
-    updateLeaderboard();
-    // Tự động cập nhật 30 phút
-    setInterval(updateLeaderboard, 1800000);
+    // load ngay khi mở page
+    fetchXP();
+    // tự động cập nhật 30 phút
+    setInterval(fetchXP, 30 * 60 * 1000);
   </script>
 </body>
 </html>
