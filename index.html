@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>SuS XP Leaderboard</title>
+  <style>
+    body {
+      background-color: #111;
+      color: #ddd;
+      font-family: Arial, sans-serif;
+      text-align: center;
+      margin: 0;
+      padding: 0;
+    }
+    header {
+      background: #222;
+      padding: 20px;
+      font-size: 24px;
+      font-weight: bold;
+    }
+    table {
+      width: 80%;
+      margin: 30px auto;
+      border-collapse: collapse;
+      font-size: 18px;
+    }
+    th, td {
+      border: 1px solid #333;
+      padding: 12px;
+    }
+    th {
+      background: #333;
+      color: #fff;
+    }
+    tr:nth-child(even) {
+      background: #1a1a1a;
+    }
+    tr:hover {
+      background: #2a2a2a;
+    }
+    #updateBtn {
+      margin: 20px;
+      padding: 10px 20px;
+      font-size: 16px;
+      background: #444;
+      color: #fff;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+    #updateBtn:hover {
+      background: #666;
+    }
+  </style>
+</head>
+<body>
+  <header>SuS XP Leaderboard</header>
+  <p>Danh sách theo dõi 4 người chơi | Cập nhật tự động mỗi 30 phút</p>
+  <button id="updateBtn">🔄 Cập nhật ngay</button>
+  
+  <table id="leaderboard">
+    <thead>
+      <tr>
+        <th>Hạng</th>
+        <th>Tên</th>
+        <th>Tổng XP</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+
+  <script>
+    const players = ["SuS QuangTong", "SuS Dominate", "SuS TradaVN", "SuS Daera"];
+    const tableBody = document.querySelector("#leaderboard tbody");
+    const updateBtn = document.getElementById("updateBtn");
+
+    async function fetchXP(player) {
+      const url = "https://www.curseofaros.com/highscores-personal?user=" + encodeURIComponent(player);
+      try {
+        const res = await fetch(url);
+        const text = await res.text();
+        // Parse HTML: tìm dòng có Total XP
+        const match = text.match(/Total XP<\/td><td>([\d,]+)/);
+        if (match) {
+          return { name: player, xp: parseInt(match[1].replace(/,/g, ""), 10) };
+        }
+      } catch (e) {
+        console.error("Lỗi khi lấy dữ liệu của", player, e);
+      }
+      return { name: player, xp: 0 };
+    }
+
+    async function updateLeaderboard() {
+      let results = [];
+      for (let player of players) {
+        const data = await fetchXP(player);
+        results.push(data);
+      }
+      // Sắp xếp theo XP giảm dần
+      results.sort((a, b) => b.xp - a.xp);
+
+      // Cập nhật bảng
+      tableBody.innerHTML = "";
+      results.forEach((p, i) => {
+        const row = `<tr>
+          <td>${i + 1}</td>
+          <td>${p.name}</td>
+          <td>${p.xp.toLocaleString()}</td>
+        </tr>`;
+        tableBody.innerHTML += row;
+      });
+    }
+
+    // Nút cập nhật ngay
+    updateBtn.addEventListener("click", updateLeaderboard);
+
+    // Lần đầu chạy
+    updateLeaderboard();
+    // Tự động cập nhật 30 phút
+    setInterval(updateLeaderboard, 1800000);
+  </script>
+</body>
+</html>
