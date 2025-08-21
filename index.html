@@ -39,6 +39,11 @@
     button:hover {
       background: #666;
     }
+    #last-update {
+      margin-top: 10px;
+      font-size: 14px;
+      color: #bbb;
+    }
   </style>
 </head>
 <body>
@@ -59,12 +64,14 @@
     </tbody>
   </table>
 
+  <div id="last-update"></div>
+
   <script>
     const players = ["SuS QuangTong", "SuS Dominate", "SuS TradaVN", "SuS Daera"];
 
     async function fetchXP() {
       try {
-        const res = await fetch("https://api.allorigins.win/raw?url=https://www.curseofaros.com/");
+        const res = await fetch("https://api.allorigins.win/raw?url=https://www.curseofaros.com/highscores.html");
         const text = await res.text();
 
         const parser = new DOMParser();
@@ -103,6 +110,10 @@
         if (data.length === 0) {
           tbody.innerHTML = `<tr><td colspan="3">Không tìm thấy dữ liệu</td></tr>`;
         }
+
+        // cập nhật thời gian cuối
+        document.getElementById("last-update").innerText =
+          "Cập nhật lần cuối: " + new Date().toLocaleString("vi-VN");
 
       } catch (e) {
         console.error("Lỗi:", e);
