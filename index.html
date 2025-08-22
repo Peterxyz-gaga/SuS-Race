@@ -1,151 +1,385 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="vi">
 <head>
-  <meta charset="UTF-8">
-  <title>SuS XP Tracker</title>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Curse of Aros – Highscores</title>
   <style>
-    body {
-      background: #121212;
-      color: #f5f5f5;
-      font-family: Arial, sans-serif;
-      text-align: center;
+    :root{
+      --bg:#0b1020; --panel:#121a32; --muted:#8aa0c7; --text:#e8eefc; --accent:#5aa9ff; --accent-2:#7ad3ff;
+      --border: #243054; --chip:#1b2542; --ok:#2ecc71; --warn:#f39c12;
     }
-    h1 { margin: 20px 0; }
-    table {
-      margin: auto;
-      border-collapse: collapse;
-      width: 80%;
-      background: #1e1e1e;
-      border-radius: 8px;
-      overflow: hidden;
+    *{box-sizing:border-box}
+    body{
+      margin:0; background:linear-gradient(180deg,#0a0f1f,#0a0f1f 60%, #0e1530);
+      color:var(--text); font: 14px/1.5 system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial, "Noto Sans", "Apple Color Emoji","Segoe UI Emoji";
+      min-height:100vh; display:flex; align-items:center; justify-content:center; padding:24px;
     }
-    th, td {
-      padding: 12px;
-      border: 1px solid #333;
-      text-align: center;
+    .wrap{
+      width:min(1100px, 100%); display:grid; gap:16px;
     }
-    th {
-      background: #333;
-      font-weight: bold;
+    .card{
+      background:var(--panel); border:1px solid var(--border); border-radius:16px; box-shadow:0 10px 30px rgba(0,0,0,.35);
+      overflow:hidden;
     }
-    button {
-      background: #444;
-      color: #fff;
-      padding: 10px 20px;
-      border: none;
-      margin: 15px;
-      border-radius: 6px;
-      cursor: pointer;
+    header.card{
+      padding:16px 18px; display:grid; gap:12px;
     }
-    button:hover {
-      background: #666;
+    .title{ display:flex; align-items:center; gap:10px; font-weight:700; letter-spacing:.3px }
+    .title .dot{ width:10px; height:10px; border-radius:50%; background:linear-gradient(45deg, var(--accent), var(--accent-2)); box-shadow:0 0 12px var(--accent) }
+    .controls{ display:flex; gap:10px; flex-wrap:wrap; align-items:center }
+    .controls .group{
+      display:flex; gap:8px; background:#0f1730; padding:8px; border:1px solid var(--border); border-radius:12px; align-items:center;
     }
-    #last-update {
-      margin-top: 10px;
-      font-size: 14px;
-      color: #bbb;
+    input[type="number"], input[type="text"], select{
+      background:#0c1430; color:var(--text); border:1px solid var(--border); border-radius:10px; padding:8px 10px; outline:none;
     }
+    input[type="checkbox"]{ transform:translateY(1px) }
+    button{
+      background:linear-gradient(45deg, var(--accent), var(--accent-2)); color:#081225; border:0; border-radius:12px; font-weight:700;
+      padding:8px 12px; cursor:pointer; transition:.2s transform;
+    }
+    button:hover{ transform:translateY(-1px) }
+    button.ghost{ background:#0f1730; color:var(--text); border:1px solid var(--border) }
+
+    .table-wrap{ overflow:auto }
+    table{ width:100%; border-collapse:separate; border-spacing:0 }
+    thead th{
+      position:sticky; top:0; background:rgba(15,23,48,.95); backdrop-filter: blur(6px);
+      text-align:left; font-weight:700; padding:12px; border-bottom:1px solid var(--border); white-space:nowrap; cursor:pointer;
+    }
+    tbody td{ padding:12px; border-bottom:1px dashed #1e2a4f; vertical-align:middle }
+    tr:hover td{ background:#0f1730 }
+
+    .name{
+      display:flex; align-items:center; gap:10px; font-weight:700;
+    }
+    .name .chip{
+      font-size:12px; color:var(--muted); background:var(--chip); padding:3px 8px; border-radius:999px; border:1px solid var(--border);
+    }
+    .muted{ color:var(--muted) }
+    .mono{ font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace }
+    .lvl{ font-weight:700; background:#0f1730; border:1px solid var(--border); padding:4px 8px; border-radius:8px }
+    .xpbar{
+      height:8px; background:#0b1330; border:1px solid var(--border); border-radius:999px; overflow:hidden;
+      box-shadow: inset 0 0 10px rgba(0,0,0,.3);
+    }
+    .xpbar > i{ display:block; height:100%; background:linear-gradient(90deg, var(--accent), var(--accent-2)) }
+    .footer{
+      display:flex; justify-content:space-between; align-items:center; padding:12px 16px; color:var(--muted); font-size:12px; border-top:1px solid var(--border)
+    }
+    .status{ display:flex; align-items:center; gap:8px }
+    .status .dot{ width:8px; height:8px; border-radius:50% }
+    .ok{ background:var(--ok) } .warn{ background:var(--warn) }
+    .hidden{ display:none !important }
+    .center{ text-align:center; padding:24px }
+    .link{ color:var(--accent-2); text-decoration:none }
   </style>
 </head>
 <body>
-  <h1>SuS XP Tracker</h1>
-  <p>Theo dõi Locked XP, Current XP và Gained XP | Tự động cập nhật mỗi 30 phút</p>
-  <button onclick="fetchXP()">Cập nhật ngay</button>
+  <div class="wrap">
+    <header class="card">
+      <div class="title"><span class="dot"></span> <span>Curse of Aros – Highscores (Overall)</span></div>
+      <div class="controls">
+        <div class="group">
+          <label for="search">Tìm tên:</label>
+          <input id="search" type="text" placeholder="VD: Aros, GLORY..." />
+        </div>
+        <div class="group">
+          <label for="page">Trang (p):</label>
+          <input id="page" type="number" min="1" step="1" value="2" style="width:90px" />
+          <button id="btnPrev" class="ghost">&larr; Trước</button>
+          <button id="btnNext" class="ghost">Sau &rarr;</button>
+        </div>
+        <div class="group">
+          <label for="lw">lw =</label>
+          <select id="lw">
+            <option value="0" selected>0 (overall)</option>
+            <option value="1">1</option>
+          </select>
+        </div>
+        <button id="btnReload">Tải lại</button>
+        <a class="link" href="https://www.curseofaros.com/highscores-overall.json?p=2&lw=0" target="_blank" rel="noreferrer">Mở API</a>
+      </div>
+    </header>
 
-  <table id="leaderboard">
-    <thead>
-      <tr>
-        <th>Rank</th>
-        <th>Tên</th>
-        <th>Locked XP</th>
-        <th>Current XP</th>
-        <th>Gained XP</th>
-      </tr>
-    </thead>
-    <tbody>
-      <tr><td colspan="5">Đang tải dữ liệu...</td></tr>
-    </tbody>
-  </table>
+    <section class="card table-wrap" id="tableCard">
+      <div class="center" id="loading">Đang tải dữ liệu...</div>
+      <div class="center hidden" id="error">Không tải được dữ liệu. Hãy kiểm tra mạng hoặc CORS.</div>
+      <table id="table" class="hidden" aria-label="Highscores table">
+        <thead>
+          <tr>
+            <th data-key="rank">#</th>
+            <th data-key="name">Người chơi</th>
+            <th data-key="xp" title="Tổng XP">XP</th>
+            <th data-key="locked_xp" title="Locked XP">Locked XP</th>
+            <th data-key="gained_xp" title="Gained XP">Gained XP</th>
+            <th data-key="total_level" title="Tổng level">Total Lv</th>
+            <th data-key="skills" title="Tổng số kỹ năng có XP">Kỹ năng</th>
+          </tr>
+        </thead>
+        <tbody id="tbody"></tbody>
+      </table>
+    </section>
 
-  <div id="last-update"></div>
 
-  <script>
-    // Danh sách người chơi và Locked XP (bạn thay đổi số locked này theo ý mình)
-    let players = [
-      { name: "SuS QuangTong", locked: 100000000 }, 
-      { name: "SuS Dominate", locked: 200000000 }, 
-      { name: "SuS TraDaVN", locked: 150000000 }, 
-      { name: "SuS Daera", locked: 120000000 }
-    ];
+    <footer class="card footer">
+      <div class="status"><span class="dot ok" id="statusDot"></span><span id="statusText">Sẵn sàng</span></div>
+      <div>Tip: Click tiêu đề cột để sắp xếp. Gõ để lọc theo tên.</div>
+    </footer>
+  </div>
 
-    async function fetchXP() {
-      try {
-        const url = "https://corsproxy.io/?" + encodeURIComponent("https://www.curseofaros.com/highscores.html");
-        const res = await fetch(url);
-        const text = await res.text();
+ <script>
+    const API_BASE = 'https://www.curseofaros.com/highscores-overall.json';
+    const els = {
+      page: document.getElementById('page'),
+      lw: document.getElementById('lw'),
+      search: document.getElementById('search'),
+      btnPrev: document.getElementById('btnPrev'),
+      btnNext: document.getElementById('btnNext'),
+      btnReload: document.getElementById('btnReload'),
+      statusDot: document.getElementById('statusDot'),
+      statusText: document.getElementById('statusText'),
+      loading: document.getElementById('loading'),
+      error: document.getElementById('error'),
+      table: document.getElementById('table'),
+      tbody: document.getElementById('tbody'),
+      thead: document.querySelector('#table thead'),
+    };
 
-        const parser = new DOMParser();
-        const doc = parser.parseFromString(text, "text/html");
-        const rows = doc.querySelectorAll("table tr");
+    let rawData = [];
+    let viewData = [];
+    let sort = { key: 'xp', dir: 'desc' };
 
-        let data = [];
+    function fmtNumber(n){
+      try{ return Number(n).toLocaleString('en-US'); }catch{ return n; }
+    }
 
-        rows.forEach((row, i) => {
-          if (i === 0) return; // bỏ header
-          const cols = row.querySelectorAll("td");
-          if (cols.length >= 3) {
-            const name = cols[1].innerText.trim();
-            const xp = parseInt(cols[2].innerText.replace(/,/g, '')) || 0;
+    function setStatus(ok=true, text=''){
+      els.statusDot.className = 'dot ' + (ok ? 'ok' : 'warn');
+      els.statusText.textContent = text || (ok ? 'Sẵn sàng' : 'Có lỗi xảy ra');
+    }
+    function setLoading(isLoading){
+      els.loading.classList.toggle('hidden', !isLoading);
+      els.table.classList.toggle('hidden', isLoading);
+      els.error.classList.add('hidden');
+      setStatus(isLoading, isLoading ? 'Đang tải dữ liệu...' : 'Sẵn sàng');
+    }
+    function setError(msg){
+      els.error.textContent = msg || 'Không tải được dữ liệu.';
+      els.error.classList.remove('hidden');
+      els.table.classList.add('hidden');
+      els.loading.classList.add('hidden');
+      setStatus(false, msg || 'Lỗi tải dữ liệu');
+    }
 
-            // kiểm tra nếu nằm trong danh sách
-            let player = players.find(p => p.name === name);
-            if (player) {
-              let gained = xp - player.locked;
-              data.push({
-                name: player.name,
-                locked: player.locked,
-                current: xp,
-                gained: gained
-              });
-            }
-          }
-        });
+    function buildUrl(){
+      const p = Math.max(1, parseInt(els.page.value || '1', 10));
+      const lw = parseInt(els.lw.value || '0', 10);
+      return `${API_BASE}?p=${encodeURIComponent(p)}&lw=${encodeURIComponent(lw)}`;
+    }
 
-        // sắp xếp theo Gained XP giảm dần
-        data.sort((a, b) => b.gained - a.gained);
-
-        const tbody = document.querySelector("#leaderboard tbody");
-        tbody.innerHTML = "";
-        data.forEach((p, index) => {
-          tbody.innerHTML += `
-            <tr>
-              <td>${index + 1}</td>
-              <td>${p.name}</td>
-              <td>${p.locked.toLocaleString()}</td>
-              <td>${p.current.toLocaleString()}</td>
-              <td>${p.gained.toLocaleString()}</td>
-            </tr>
-          `;
-        });
-
-        if (data.length === 0) {
-          tbody.innerHTML = `<tr><td colspan="5">Không tìm thấy dữ liệu</td></tr>`;
-        }
-
-        // cập nhật thời gian cuối
-        document.getElementById("last-update").innerText =
-          "Cập nhật lần cuối: " + new Date().toLocaleString("vi-VN");
-
-      } catch (e) {
-        console.error("Lỗi:", e);
-        document.querySelector("#leaderboard tbody").innerHTML = `<tr><td colspan="5">Lỗi tải dữ liệu</td></tr>`;
+    async function fetchData(){
+      setLoading(true);
+      try{
+        const url = buildUrl();
+        const res = await fetch(url, { cache: 'no-store' });
+        if(!res.ok) throw new Error(`HTTP ${res.status}`);
+        const json = await res.json();
+        if(!Array.isArray(json)) throw new Error('Dữ liệu trả về không phải mảng.');
+        rawData = json.map((d, i) => ({
+          rank: i + 1,
+          name: d.name,
+          name_color: d.name_color,
+          xp: d.xp,
+          total_level: d.total_level,
+          xps: d.xps || [],
+          locked_xp: 0, // thêm mặc định
+          get gained_xp(){ return (this.xp || 0) - (this.locked_xp || 0); }
+        }));
+        applyFiltersAndRender();
+        setLoading(false);
+        setStatus(true, `Đã tải ${rawData.length} dòng từ ${new URL(buildUrl()).href}`);
+      }catch(err){
+        console.error(err);
+        setError('Không tải được dữ liệu. Chi tiết: ' + err.message);
       }
     }
 
-    // load ngay khi mở page
-    fetchXP();
-    // tự động cập nhật 30 phút
-    setInterval(fetchXP, 30 * 60 * 1000);
+    function applyFiltersAndRender(){
+      const q = (els.search.value || '').trim().toLowerCase();
+      viewData = rawData.filter(row => !q || (row.name || '').toLowerCase().includes(q));
+      sortData();
+      renderTable();
+    }
+
+    function sortData(){
+      const { key, dir } = sort;
+      const mul = dir === 'asc' ? 1 : -1;
+      viewData.sort((a,b)=>{
+        const av = key === 'skills' ? (a.xps?.filter(x=>x>0).length||0) : a[key];
+        const bv = key === 'skills' ? (b.xps?.filter(x=>x>0).length||0) : b[key];
+        if (typeof av === 'string' && typeof bv === 'string'){
+          return av.localeCompare(bv) * mul;
+        }
+        return ((av ?? 0) - (bv ?? 0)) * mul;
+      });
+    }
+
+    function setSort(key){
+      if (sort.key === key){
+        sort.dir = (sort.dir === 'asc') ? 'desc' : 'asc';
+      } else {
+        sort.key = key;
+        sort.dir = (key === 'name' || key === 'rank') ? 'asc' : 'desc';
+      }
+      applyFiltersAndRender();
+      document.querySelectorAll('thead th').forEach(th=>{
+        const k = th.dataset.key;
+        if(!k){ th.textContent = th.textContent; return; }
+        th.innerHTML = th.textContent.replace(/[▲▼]/g,'') + (k===sort.key ? (sort.dir==='asc'?' ▲':' ▼') : '');
+      });
+    }
+
+function renderTable(){
+  const tbody = els.tbody;
+  tbody.innerHTML = '';
+  if(viewData.length === 0){
+    tbody.innerHTML = `<tr><td colspan="7" class="center muted">Không có dữ liệu phù hợp.</td></tr>`;
+    return;
+  }
+  const maxXp = Math.max(...viewData.map(r=>r.xp||0), 1);
+  const frag = document.createDocumentFragment();
+  viewData.forEach(row=>{
+    const tr = document.createElement('tr');
+
+    // Rank
+    const tdRank = document.createElement('td');
+    tdRank.className = 'mono muted';
+    tdRank.textContent = row.rank;
+    tr.appendChild(tdRank);
+
+    // Name
+    const tdName = document.createElement('td');
+    tdName.className = 'name';
+    const nameSpan = document.createElement('span');
+    nameSpan.textContent = row.name || '(unknown)';
+    if (row.name_color){
+      nameSpan.style.color = `#${row.name_color}`;
+    }
+    const chip = document.createElement('span');
+    const skillCount = row.xps?.filter(x=>x>0).length || 0;
+    chip.className = 'chip';
+    chip.title = `${skillCount} kỹ năng có XP > 0`;
+    chip.textContent = `${skillCount} skills`;
+    tdName.appendChild(nameSpan);
+    tdName.appendChild(chip);
+    tr.appendChild(tdName);
+
+    // XP
+    const tdXp = document.createElement('td');
+    const xpTop = document.createElement('div');
+    xpTop.className = 'mono';
+    xpTop.textContent = fmtNumber(row.xp);
+    const bar = document.createElement('div');
+    bar.className = 'xpbar'; const fill = document.createElement('i');
+    fill.style.width = Math.max(2, Math.round((row.xp/maxXp)*100)) + '%';
+    bar.appendChild(fill);
+    tdXp.appendChild(xpTop); tdXp.appendChild(bar);
+    tr.appendChild(tdXp);
+
+    // Locked XP (editable)
+    const tdLocked = document.createElement('td');
+    tdLocked.className = 'mono';
+    const lockedSpan = document.createElement('span');
+    lockedSpan.textContent = fmtNumber(row.locked_xp || 0);
+
+    const lockedInput = document.createElement('input');
+    lockedInput.type = 'number';
+    lockedInput.value = row.locked_xp || 0;
+    lockedInput.style.display = 'none';
+    lockedInput.style.width = '100px';
+
+    const btnEdit = document.createElement('button');
+    btnEdit.className = 'ghost';
+    btnEdit.textContent = 'Edit';
+
+    btnEdit.addEventListener('click', ()=>{
+      if (btnEdit.textContent === 'Edit'){
+        lockedSpan.style.display = 'none';
+        lockedInput.style.display = 'inline-block';
+        btnEdit.textContent = 'Save';
+      } else {
+        const newVal = parseInt(lockedInput.value || '0', 10);
+        row.locked_xp = newVal;
+        lockedSpan.textContent = fmtNumber(newVal);
+        lockedSpan.style.display = 'inline';
+        lockedInput.style.display = 'none';
+        btnEdit.textContent = 'Edit';
+        // cập nhật lại Gained XP
+        tdGained.textContent = fmtNumber(row.gained_xp || 0);
+      }
+    });
+
+    tdLocked.appendChild(lockedSpan);
+    tdLocked.appendChild(lockedInput);
+    tdLocked.appendChild(btnEdit);
+    tr.appendChild(tdLocked);
+
+    // Gained XP
+    const tdGained = document.createElement('td');
+    tdGained.className = 'mono';
+    tdGained.textContent = fmtNumber(row.gained_xp || 0);
+    tr.appendChild(tdGained);
+
+    // Total Level
+    const tdLv = document.createElement('td');
+    tdLv.innerHTML = `<span class="lvl">${fmtNumber(row.total_level)}</span>`;
+    tr.appendChild(tdLv);
+
+    // Skills detail
+    const tdSkills = document.createElement('td');
+    const btn = document.createElement('button');
+    btn.className = 'ghost';
+    btn.textContent = 'Chi tiết';
+    const detail = document.createElement('div');
+    detail.className = 'muted mono';
+    detail.style.marginTop = '6px';
+    detail.style.display = 'none';
+    const arr = (row.xps || []).map((v,i)=>`S${i+1}:${fmtNumber(v)}`).join(' · ');
+    detail.textContent = arr || '—';
+    btn.addEventListener('click', ()=>{
+      detail.style.display = detail.style.display==='none' ? 'block' : 'none';
+    });
+    tdSkills.appendChild(btn);
+    tdSkills.appendChild(detail);
+    tr.appendChild(tdSkills);
+
+    frag.appendChild(tr);
+  });
+  tbody.appendChild(frag);
+}
+
+
+    els.btnReload.addEventListener('click', fetchData);
+    els.btnPrev.addEventListener('click', ()=>{
+      const cur = Math.max(1, parseInt(els.page.value || '1', 10));
+      if(cur > 1){ els.page.value = String(cur - 1); fetchData(); }
+    });
+    els.btnNext.addEventListener('click', ()=>{
+      const cur = Math.max(1, parseInt(els.page.value || '1', 10));
+      els.page.value = String(cur + 1); fetchData();
+    });
+    els.page.addEventListener('change', fetchData);
+    els.lw.addEventListener('change', fetchData);
+    els.search.addEventListener('input', ()=> applyFiltersAndRender());
+    els.thead.addEventListener('click', (e)=>{
+      const th = e.target.closest('th');
+      if(!th || !th.dataset.key) return;
+      setSort(th.dataset.key);
+    });
+
+    fetchData();
   </script>
 </body>
 </html>
